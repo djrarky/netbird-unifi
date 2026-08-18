@@ -1,0 +1,16 @@
+[Unit]
+Description=Ensure NetBird is installed and healthy on UniFi OS
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/data/netbird
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+Environment=DEBIAN_FRONTEND=noninteractive
+ExecStart=/bin/sh -c "/data/netbird/manage.sh maintain"
+Restart=on-failure
+RestartSec=5m
+
+[Install]
+WantedBy=multi-user.target

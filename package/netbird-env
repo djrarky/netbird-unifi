@@ -1,0 +1,32 @@
+# NetBird configuration for UniFi OS.
+# This file is persistent and is the source of truth for netbird-unifi.
+# Edit it, then run: /data/netbird/manage.sh apply
+
+# Keep NetBird identity/profile/service state on persistent UniFi storage.
+# This fixed path is also the purge safety boundary.
+NB_STATE_DIR="/data/netbird/state"
+
+# Defaults applied by `/data/netbird/manage.sh up`.
+# Native `netbird up ...` remains available and may override the persisted
+# NetBird peer profile without rewriting this file.
+NB_HOSTNAME="netbird-unifi"
+NB_MANAGEMENT_URL="https://api.netbird.io:443"
+NB_INTERFACE_NAME="netbird0"
+NB_WIREGUARD_PORT="41642"
+
+# Conservative appliance default; avoids NetBird's eBPF WireGuard UDP proxy.
+NB_DISABLE_EBPF_WG_PROXY="true"
+
+# DNS behaviour used by `manage.sh up`:
+#   unmanaged = leave the gateway's DNS configuration alone (`--disable-dns`)
+#   managed   = allow NetBird to manage DNS (`--disable-dns=false`)
+NETBIRD_DNS_MODE="unmanaged"
+
+# Routing compatibility:
+#   auto   = use upstream NetBird routing behaviour (default)
+#   legacy = set NB_USE_LEGACY_ROUTING=true
+NETBIRD_ROUTING_MODE="auto"
+
+# Opt in to NetBird package updates during daily maintenance. Firmware-repair
+# reinstalls still happen when this is false; use manage.sh update explicitly.
+NETBIRD_AUTOUPDATE="false"

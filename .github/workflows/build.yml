@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: bash ./build/package.sh ./ ./dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: package
+          path: dist
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Lifecycle contract tests
+        run: sh ./tests/test.sh
+      - name: Mocked lifecycle tests
+        run: sh ./tests/lifecycle.test.sh
+      - name: Package smoke test
+        run: |
+          bash ./build/package.sh . ./dist
+          tar tzf ./dist/netbird-unifi.tgz | grep -q '^netbird/manage.sh$'
+          tar tzf ./dist/netbird-unifi.tgz | grep -q '^netbird/common.sh$'
+          tar tzf ./dist/netbird-unifi.tgz | grep -q '^netbird/netbird-env$'
+          tar tzf ./dist/netbird-unifi.tgz | grep -q '^netbird/LICENSE$'
+          (cd ./dist && sha256sum -c netbird-unifi.tgz.sha256)

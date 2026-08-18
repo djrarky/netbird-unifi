@@ -1,0 +1,10 @@
+[Unit]
+Description=Maintain and optionally update NetBird on UniFi OS
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=24h
+Unit=netbird-install.service
+
+[Install]
+WantedBy=timers.target
