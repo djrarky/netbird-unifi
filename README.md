@@ -22,14 +22,17 @@ The persistence and lifecycle design is based on Sierra Softworks'
    and asks for the initial settings when run interactively. Running it again
    preserves your existing `/data/netbird/netbird-env` file.
 
-3. Connect the gateway to NetBird:
+3. Create a one-use, non-ephemeral setup key in your NetBird dashboard, then
+   connect the gateway:
 
    ```sh
-   /data/netbird/manage.sh up
+   /data/netbird/manage.sh up --setup-key 'YOUR_SETUP_KEY'
    ```
 
-   Follow the browser login flow printed by NetBird. For setup-key enrolment,
-   use a key file as described in the FAQ below.
+   Replace `YOUR_SETUP_KEY` with the generated key. This enrols the peer once;
+   the key is not a persistent configuration value and must not be added to
+   `netbird-env`. This quick form exposes it in shell history, so use the
+   key-file method in the FAQ when that matters.
 
 4. Check the connection:
 
@@ -101,6 +104,9 @@ After editing the file, apply the daemon settings and then the peer settings:
 /data/netbird/manage.sh apply
 /data/netbird/manage.sh up
 ```
+
+Once the peer has been enrolled, plain `manage.sh up` reconnects it without
+requiring the setup key again.
 
 Extra arguments to `manage.sh up` are passed to the native `netbird up` command.
 Native diagnostic commands remain available, but use `manage.sh up` and
