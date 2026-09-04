@@ -25,7 +25,7 @@ cmd_apply(){
   preflight_runtime; acquire_lock; ensure_state; sync_netbird_environment
   if netbird_installed; then systemctl restart netbird.service; fi
   port_notice; release_lock
-  log "Daemon environment applied. Run '$NETBIRD_ROOT/manage.sh up' for peer defaults."
+  log "Daemon environment applied. If already connected, run '$NETBIRD_ROOT/manage.sh down' then '$NETBIRD_ROOT/manage.sh up' to reapply peer defaults."
 }
 
 cmd_up(){

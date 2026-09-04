@@ -8,6 +8,7 @@ not_contains(){ if grep -F -- "$2" "$1" >/dev/null; then echo "expected $1 not t
 contains package/netbird-env 'NB_STATE_DIR="/data/netbird/state"'
 contains package/netbird-env 'NB_WIREGUARD_PORT="41642"'
 contains package/netbird-env 'NETBIRD_DNS_MODE="unmanaged"'
+contains package/netbird-env 'NETBIRD_CLIENT_ROUTES="disabled"'
 contains package/netbird-env 'NETBIRD_ROUTING_MODE="auto"'
 contains package/netbird-env 'NETBIRD_AUTOUPDATE="false"'
 
@@ -28,6 +29,8 @@ contains package/common.sh '--wireguard-port "$NB_WIREGUARD_PORT"'
 contains package/common.sh '--interface-name "$NB_INTERFACE_NAME"'
 contains package/common.sh '--hostname "$NB_HOSTNAME"'
 contains package/common.sh 'set -- --disable-dns "$@"'
+contains package/common.sh 'set -- --disable-client-routes "$@"'
+contains package/common.sh 'set -- --disable-client-routes=false "$@"'
 contains package/common.sh 'NetBird normally requires no inbound WAN firewall rule'
 not_contains package/common.sh 'Internet Local → UDP/%s → Accept'
 not_contains package/common.sh 'case "$MODEL"'
@@ -60,12 +63,14 @@ contains install.sh 'NetBird hostname'
 contains install.sh 'Management URL'
 contains install.sh 'WireGuard UDP port'
 contains install.sh 'DNS mode (managed/unmanaged)'
+contains install.sh 'Accept remote NetBird Network routes on this gateway?'
+contains install.sh 'Client routes:'
 contains install.sh 'Routing mode (auto/legacy)'
 contains install.sh 'Automatically update NetBird from the official apt repository?'
 contains install.sh 'Continue with this configuration?'
 contains install.sh '</dev/tty'
 
-for key in NB_STATE_DIR NB_HOSTNAME NB_MANAGEMENT_URL NB_INTERFACE_NAME NB_WIREGUARD_PORT NB_DISABLE_EBPF_WG_PROXY NETBIRD_DNS_MODE NETBIRD_ROUTING_MODE NETBIRD_AUTOUPDATE; do
+for key in NB_STATE_DIR NB_HOSTNAME NB_MANAGEMENT_URL NB_INTERFACE_NAME NB_WIREGUARD_PORT NB_DISABLE_EBPF_WG_PROXY NETBIRD_DNS_MODE NETBIRD_CLIENT_ROUTES NETBIRD_ROUTING_MODE NETBIRD_AUTOUPDATE; do
   contains install.sh "set_config_value \"\$ROOT/netbird-env\" $key"
 done
 

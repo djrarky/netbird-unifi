@@ -89,8 +89,14 @@ if [ ! -f "$ROOT/netbird-env" ]; then
   default_interface="${NB_INTERFACE_NAME:-netbird0}"
   default_port="${NB_WIREGUARD_PORT:-41642}"
   default_dns="${NETBIRD_DNS_MODE:-unmanaged}"
+  default_client_routes="${NETBIRD_CLIENT_ROUTES:-disabled}"
   default_routing="${NETBIRD_ROUTING_MODE:-auto}"
   default_update="${NETBIRD_AUTOUPDATE:-false}"
+  case "$default_client_routes" in
+    enabled) default_accept_routes=true;;
+    disabled) default_accept_routes=false;;
+    *) fail "NETBIRD_CLIENT_ROUTES must be enabled/disabled";;
+  esac
 
   if [ "$interactive" = true ]; then
     printf '\nConfigure this NetBird peer. Press Enter to accept a default.\n\n' >/dev/tty
@@ -99,6 +105,12 @@ if [ ! -f "$ROOT/netbird-env" ]; then
     NB_INTERFACE_NAME="$(ask_value 'Interface name' "$default_interface")"
     NB_WIREGUARD_PORT="$(ask_value 'WireGuard UDP port' "$default_port")"
     NETBIRD_DNS_MODE="$(ask_choice 'DNS mode (managed/unmanaged)' "$default_dns" 'managed unmanaged')"
+    accept_client_routes="$(ask_yes_no 'Accept remote NetBird Network routes on this gateway?' "$default_accept_routes")"
+    if [ "$accept_client_routes" = true ]; then
+      NETBIRD_CLIENT_ROUTES=enabled
+    else
+      NETBIRD_CLIENT_ROUTES=disabled
+    fi
     NETBIRD_ROUTING_MODE="$(ask_choice 'Routing mode (auto/legacy)' "$default_routing" 'auto legacy')"
     NETBIRD_AUTOUPDATE="$(ask_yes_no 'Automatically update NetBird from the official apt repository?' "$default_update")"
 
@@ -108,6 +120,7 @@ if [ ! -f "$ROOT/netbird-env" ]; then
     printf '  Interface:        %s\n' "$NB_INTERFACE_NAME" >/dev/tty
     printf '  WireGuard port:   UDP/%s\n' "$NB_WIREGUARD_PORT" >/dev/tty
     printf '  DNS mode:         %s\n' "$NETBIRD_DNS_MODE" >/dev/tty
+    printf '  Client routes:    %s\n' "$NETBIRD_CLIENT_ROUTES" >/dev/tty
     printf '  Routing mode:     %s\n' "$NETBIRD_ROUTING_MODE" >/dev/tty
     printf '  Automatic update: %s\n\n' "$NETBIRD_AUTOUPDATE" >/dev/tty
     confirmed="$(ask_yes_no 'Continue with this configuration?' true)"
@@ -118,6 +131,7 @@ if [ ! -f "$ROOT/netbird-env" ]; then
     NB_INTERFACE_NAME="$default_interface"
     NB_WIREGUARD_PORT="$default_port"
     NETBIRD_DNS_MODE="$default_dns"
+    NETBIRD_CLIENT_ROUTES="$default_client_routes"
     NETBIRD_ROUTING_MODE="$default_routing"
     NETBIRD_AUTOUPDATE="$default_update"
   fi
@@ -131,6 +145,7 @@ if [ ! -f "$ROOT/netbird-env" ]; then
   set_config_value "$ROOT/netbird-env" NB_WIREGUARD_PORT "$NB_WIREGUARD_PORT"
   set_config_value "$ROOT/netbird-env" NB_DISABLE_EBPF_WG_PROXY "$NB_DISABLE_EBPF_WG_PROXY"
   set_config_value "$ROOT/netbird-env" NETBIRD_DNS_MODE "$NETBIRD_DNS_MODE"
+  set_config_value "$ROOT/netbird-env" NETBIRD_CLIENT_ROUTES "$NETBIRD_CLIENT_ROUTES"
   set_config_value "$ROOT/netbird-env" NETBIRD_ROUTING_MODE "$NETBIRD_ROUTING_MODE"
   set_config_value "$ROOT/netbird-env" NETBIRD_AUTOUPDATE "$NETBIRD_AUTOUPDATE"
 else

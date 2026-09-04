@@ -90,6 +90,7 @@ NB_INTERFACE_NAME="netbird0"
 NB_WIREGUARD_PORT="41642"
 NB_DISABLE_EBPF_WG_PROXY="true"
 NETBIRD_DNS_MODE="unmanaged"
+NETBIRD_CLIENT_ROUTES="disabled"
 NETBIRD_ROUTING_MODE="auto"
 NETBIRD_AUTOUPDATE="false"
 ```
@@ -98,13 +99,21 @@ NETBIRD_AUTOUPDATE="false"
 not be changed. Keep `netbird-env` owned by root with mode `0600`, and use only
 the documented assignments because the lifecycle scripts source it as root.
 
-After editing the file, apply the daemon settings and then the peer settings:
+After editing daemon settings, apply them with:
 
 ```sh
 /data/netbird/manage.sh apply
+```
+
+To reapply peer settings such as DNS mode or client-route acceptance on an
+already-connected gateway, reconnect it:
+
+```sh
+/data/netbird/manage.sh down
 /data/netbird/manage.sh up
 ```
 
+This briefly interrupts NetBird connectivity, so use local or alternate access.
 Once the peer has been enrolled, plain `manage.sh up` reconnects it without
 requiring the setup key again.
 
@@ -202,6 +211,23 @@ return route.
 This differs from Tailscale: the wrapper does not advertise local routes on the
 command line. See NetBird's guide to [Networks and routing peers].
 
+### Why are remote NetBird Network routes disabled by default?
+
+`NETBIRD_CLIENT_ROUTES="disabled"` passes `--disable-client-routes` to
+`netbird up`. This prevents routes received from other NetBird routing peers or
+exit nodes from taking precedence over UniFi static routes or OSPF-learned
+routes. It does not prevent this gateway from serving its own LAN as a routing
+peer.
+
+Set it to `enabled`, then run `manage.sh down` followed by `manage.sh up`, only
+when the gateway should consume remote NetBird Networks or exit-node routes.
+This mirrors the conservative Linux route-acceptance default used with
+[tailscale-unifi].
+
+Configurations created by earlier releases do not contain this setting and
+default to `enabled`, matching the wrapper's previous default. Add it explicitly
+to opt those installations out of client routes.
+
 ### Can devices on my UniFi LAN initiate connections to remote resources?
 
 Not automatically. NetBird's [Site-to-VPN] direction requires a persistent
@@ -211,7 +237,8 @@ official guide and substitute your configured NetBird interface (`netbird0` by
 default) where its Linux examples use `wt0`.
 
 Connecting two whole LANs is a different [Site-to-Site] design with a routing
-peer at each end.
+peer at each end. If the remote destination is a NetBird Network rather than a
+peer, client routes must also be enabled on this gateway.
 
 ### Why does the wrapper leave DNS unmanaged?
 
@@ -225,6 +252,10 @@ NetBird to manage DNS on the gateway.
 Leave `NETBIRD_ROUTING_MODE="auto"` unless `manage.sh diagnose` or the NetBird
 service log shows known routing or firewall-chain symptoms. `legacy` sets only
 `NB_USE_LEGACY_ROUTING=true`.
+
+Routing mode chooses how NetBird implements routes; it does not choose whether
+this gateway consumes remote Network routes. `NETBIRD_CLIENT_ROUTES` controls
+that separately.
 
 The wrapper deliberately does not set `NB_DISABLE_CUSTOM_ROUTING`; that separate
 option can reject very broad or default routes and break exit-node use.

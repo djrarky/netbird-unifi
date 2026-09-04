@@ -14,6 +14,7 @@ NB_INTERFACE_NAME="netbird0"
 NB_WIREGUARD_PORT="41642"
 NB_DISABLE_EBPF_WG_PROXY="true"
 NETBIRD_DNS_MODE="unmanaged"
+NETBIRD_CLIENT_ROUTES="disabled"
 NETBIRD_ROUTING_MODE="auto"
 NETBIRD_AUTOUPDATE="false"
 EOF
@@ -66,6 +67,32 @@ if grep -q '^NB_DISABLE_CUSTOM_ROUTING=' "$SYSCONFIG"; then echo "legacy mode di
 sed -i 's/NETBIRD_ROUTING_MODE="legacy"/NETBIRD_ROUTING_MODE="auto"/' "$ENV_FILE"
 load_env; sync_netbird_environment
 if grep -q '^NB_USE_LEGACY_ROUTING=' "$SYSCONFIG"; then echo "legacy flag survived auto mode" >&2; exit 1; fi
+
+# Client-route acceptance is explicit in both directions. It remains separate
+# from serving local Networks and is therefore not written to daemon sysconfig.
+cat >"$TMP/bin/netbird" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$@" >"$NETBIRD_CALLS"
+EOF
+chmod +x "$TMP/bin/netbird"
+calls="$TMP/netbird-up.calls"
+NETBIRD_CLIENT_ROUTES=disabled NETBIRD_CALLS="$calls" PATH="$TMP/bin:$PATH" netbird_up --extra-argument
+assert grep -qx -- '--disable-client-routes' "$calls"
+assert grep -qx -- '--extra-argument' "$calls"
+NETBIRD_CLIENT_ROUTES=enabled NETBIRD_CALLS="$calls" PATH="$TMP/bin:$PATH" netbird_up
+assert grep -qx -- '--disable-client-routes=false' "$calls"
+if grep -q '^NB_DISABLE_CLIENT_ROUTES=' "$SYSCONFIG"; then echo "client route setting leaked into daemon sysconfig" >&2; exit 1; fi
+
+# Older preserved configurations did not contain this key. They use the
+# wrapper's previous enabled default until an administrator opts out.
+sed -i '/^NETBIRD_CLIENT_ROUTES=/d' "$ENV_FILE"
+load_env
+assert test "$NETBIRD_CLIENT_ROUTES" = enabled
+printf '%s\n' 'NETBIRD_CLIENT_ROUTES="disabled"' >>"$ENV_FILE"
+load_env
+NETBIRD_CLIENT_ROUTES=invalid
+reject validate_env
+load_env
 
 # State and purge paths have exact, non-traversable boundaries.
 for unsafe in / /data /data/.. /data/netbird /data/netbird/ /data/netbird/../etc /data/netbird/state/.. relative; do

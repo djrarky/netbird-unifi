@@ -69,8 +69,9 @@ load_env(){
   [ -f "$ENV_FILE" ] || fail "Missing $ENV_FILE"
   [ ! -L "$ENV_FILE" ] || fail "Refusing to source symlinked $ENV_FILE"
   unset NB_STATE_DIR NB_HOSTNAME NB_MANAGEMENT_URL NB_INTERFACE_NAME NB_WIREGUARD_PORT \
-    NB_DISABLE_EBPF_WG_PROXY NETBIRD_DNS_MODE NETBIRD_ROUTING_MODE NETBIRD_AUTOUPDATE \
-    NB_USE_LEGACY_ROUTING NB_DISABLE_CUSTOM_ROUTING 2>/dev/null || true
+    NB_DISABLE_EBPF_WG_PROXY NETBIRD_DNS_MODE NETBIRD_CLIENT_ROUTES \
+    NETBIRD_ROUTING_MODE NETBIRD_AUTOUPDATE NB_USE_LEGACY_ROUTING \
+    NB_DISABLE_CUSTOM_ROUTING NB_DISABLE_CLIENT_ROUTES 2>/dev/null || true
   # shellcheck disable=SC1090
   . "$ENV_FILE"
   : "${NB_STATE_DIR:=$NETBIRD_ROOT/state}"
@@ -80,10 +81,13 @@ load_env(){
   : "${NB_WIREGUARD_PORT:=41642}"
   : "${NB_DISABLE_EBPF_WG_PROXY:=true}"
   : "${NETBIRD_DNS_MODE:=unmanaged}"
+  # Configurations created before this setting existed retain the previous
+  # enabled default. Fresh templates set it explicitly to disabled.
+  : "${NETBIRD_CLIENT_ROUTES:=enabled}"
   : "${NETBIRD_ROUTING_MODE:=auto}"
   : "${NETBIRD_AUTOUPDATE:=false}"
   export NB_STATE_DIR NB_MANAGEMENT_URL NB_DISABLE_EBPF_WG_PROXY
-  unset NB_USE_LEGACY_ROUTING NB_DISABLE_CUSTOM_ROUTING 2>/dev/null || true
+  unset NB_USE_LEGACY_ROUTING NB_DISABLE_CUSTOM_ROUTING NB_DISABLE_CLIENT_ROUTES 2>/dev/null || true
   if [ "$NETBIRD_ROUTING_MODE" = legacy ]; then
     NB_USE_LEGACY_ROUTING=true
     export NB_USE_LEGACY_ROUTING
@@ -100,6 +104,7 @@ validate_env(){
   case "$NB_HOSTNAME" in ''|*[!A-Za-z0-9._-]*) fail "Invalid NB_HOSTNAME";; esac
   case "$NB_DISABLE_EBPF_WG_PROXY" in true|false) :;; *) fail "NB_DISABLE_EBPF_WG_PROXY must be true/false";; esac
   case "$NETBIRD_DNS_MODE" in managed|unmanaged) :;; *) fail "NETBIRD_DNS_MODE must be managed/unmanaged";; esac
+  case "$NETBIRD_CLIENT_ROUTES" in enabled|disabled) :;; *) fail "NETBIRD_CLIENT_ROUTES must be enabled/disabled";; esac
   case "$NETBIRD_ROUTING_MODE" in auto|modern|legacy) :;; *) fail "NETBIRD_ROUTING_MODE must be auto/legacy";; esac
   case "$NETBIRD_AUTOUPDATE" in true|false) :;; *) fail "NETBIRD_AUTOUPDATE must be true/false";; esac
 }
@@ -235,11 +240,16 @@ port_notice(){
 netbird_up(){
   set -- --management-url "$NB_MANAGEMENT_URL" --hostname "$NB_HOSTNAME" --interface-name "$NB_INTERFACE_NAME" --wireguard-port "$NB_WIREGUARD_PORT" "$@"
   if [ "$NETBIRD_DNS_MODE" = unmanaged ]; then set -- --disable-dns "$@"; else set -- --disable-dns=false "$@"; fi
+  if [ "$NETBIRD_CLIENT_ROUTES" = disabled ]; then
+    set -- --disable-client-routes "$@"
+  else
+    set -- --disable-client-routes=false "$@"
+  fi
   port_notice; netbird up "$@"
   printf '%s\n' "$NB_WIREGUARD_PORT" >"$PORT_FILE"; chmod 0600 "$PORT_FILE"
 }
 
 show_summary(){
   v="$(netbird version 2>/dev/null | head -n1 || printf unknown)"
-  printf 'NetBird\n  Version:          %s\n  Management:       %s\n  Interface:        %s\n  WireGuard port:   UDP/%s\n  State directory:  %s\n  DNS mode:         %s\n  Routing mode:     %s\n\nConnectivity\n  NetBird normally requires no inbound WAN firewall rule, including\n  when this peer routes a Network. UniFi firewall policy is unchanged.\n' "$v" "$NB_MANAGEMENT_URL" "$NB_INTERFACE_NAME" "$NB_WIREGUARD_PORT" "$NB_STATE_DIR" "$NETBIRD_DNS_MODE" "$NETBIRD_ROUTING_MODE"
+  printf 'NetBird\n  Version:          %s\n  Management:       %s\n  Interface:        %s\n  WireGuard port:   UDP/%s\n  State directory:  %s\n  DNS mode:         %s\n  Client routes:    %s\n  Routing mode:     %s\n\nConnectivity\n  NetBird normally requires no inbound WAN firewall rule, including\n  when this peer routes a Network. UniFi firewall policy is unchanged.\n' "$v" "$NB_MANAGEMENT_URL" "$NB_INTERFACE_NAME" "$NB_WIREGUARD_PORT" "$NB_STATE_DIR" "$NETBIRD_DNS_MODE" "$NETBIRD_CLIENT_ROUTES" "$NETBIRD_ROUTING_MODE"
 }

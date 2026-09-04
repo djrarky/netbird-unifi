@@ -22,6 +22,12 @@ NB_DISABLE_EBPF_WG_PROXY="true"
 #   managed   = allow NetBird to manage DNS (`--disable-dns=false`)
 NETBIRD_DNS_MODE="unmanaged"
 
+# Remote Network routes received from other routing peers:
+#   disabled = do not install them on this gateway (default)
+#   enabled  = allow selected remote Network and exit-node routes
+# This does not prevent the gateway from serving its own LAN as a routing peer.
+NETBIRD_CLIENT_ROUTES="disabled"
+
 # Routing compatibility:
 #   auto   = use upstream NetBird routing behaviour (default)
 #   legacy = set NB_USE_LEGACY_ROUTING=true
